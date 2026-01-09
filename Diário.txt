@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diário Online</title>
+  <style>
+    :root {
+      --bg: #f6f4f2;
+      --card: #ffffff;
+      --primary: #6b4eff;
+      --secondary: #f0edff;
+      --text: #2b2b2b;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 32px;
+      color: #666;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .day {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+    }
+
+    .day:hover {
+      transform: translateY(-3px);
+    }
+
+    .day span {
+      font-weight: 600;
+    }
+
+    .editor {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .editor h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .column {
+      background: var(--secondary);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .column label {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      border-radius: 8px;
+      border: none;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      margin-top: 8px;
+    }
+
+    .save {
+      margin-top: 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .save:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Meu Diário Online</h1>
+  <div class="subtitle">Cartas · Percepção · Como foi o dia</div>
+
+  <div class="calendar" id="calendar"></div>
+
+  <div class="editor" id="editor" style="display:none;">
+    <h2 id="selectedDay"></h2>
+
+    <div class="columns">
+      <div class="column">
+        <label>Cartas</label>
+        <textarea placeholder="Cartas do dia..."></textarea>
+      </div>
+
+      <div class="column">
+        <label>Percepção</label>
+        <textarea placeholder="O que você percebeu hoje..."></textarea>
+      </div>
+
+      <div class="column">
+        <label>Como foi o dia</label>
+        <textarea placeholder="Descreva seu dia..."></textarea>
+        <input type="file" accept="image/*" />
+      </div>
+    </div>
+
+    <button class="save">Salvar Dia</button>
+  </div>
+
+  <script>
+    const calendar = document.getElementById('calendar');
+    const editor = document.getElementById('editor');
+    const selectedDay = document.getElementById('selectedDay');
+
+    const daysInMonth = 30;
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const day = document.createElement('div');
+      day.className = 'day';
+      day.innerHTML = `<span>Dia ${i}</span>`;
+      day.onclick = () => openEditor(i);
+      calendar.appendChild(day);
+    }
+
+    function openEditor(day) {
+      editor.style.display = 'block';
+      selectedDay.innerText = `Registro do Dia ${day}`;
+      editor.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
