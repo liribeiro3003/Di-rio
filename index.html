@@ -5,132 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Diário Online</title>
   <style>
-    :root {
-      --bg: #f6f4f2;
-      --card: #ffffff;
-      --primary: #6b4eff;
-      --secondary: #f0edff;
-      --text: #2b2b2b;
-    }
-    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-    body { margin: 0; background: var(--bg); color: var(--text); padding: 24px; }
-    h1 { text-align: center; margin-bottom: 8px; }
-    .subtitle { text-align: center; margin-bottom: 32px; color: #666; }
-    .calendar { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
-    .day { background: var(--card); border-radius: 12px; padding: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
-    .day:hover { transform: translateY(-3px); }
-    .day.saved { border: 2px solid var(--primary); }
-    .editor { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-    .columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .column { background: var(--secondary); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
-    label { font-weight: 600; margin-bottom: 6px; }
-    textarea { resize: vertical; min-height: 100px; border-radius: 8px; border: none; padding: 10px; font-size: 14px; }
-    img.preview { margin-top: 10px; max-width: 100%; border-radius: 8px; }
-    .save { margin-top: 24px; background: var(--primary); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 16px; cursor: pointer; width: 100%; }
+    :root { --bg:#f6f4f2; --card:#fff; --primary:#6b4eff; --secondary:#f0edff; --text:#2b2b2b; }
+    * { box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+    body { margin:0; background:var(--bg); color:var(--text); padding:24px; }
+    h1{text-align:center}
+    .calendar{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:32px}
+    .day{background:var(--card);border-radius:12px;padding:12px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.05);transition:all .2s}
+    .day.saved{background:#e9e6ff;border:2px solid var(--primary)}
+    .editor{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+    .columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+    .column{background:var(--secondary);border-radius:12px;padding:12px;display:flex;flex-direction:column}
+    textarea{border:none;border-radius:8px;padding:10px;min-height:90px}
+    img{max-width:100%;border-radius:8px;margin-top:8px}
+    .status{margin-top:10px;font-size:13px;color:#555}
   </style>
 </head>
 <body>
-  <h1>Meu Diário Online</h1>
-  <div class="subtitle">Cartas · Percepção · Como foi o dia</div>
+<script>
+  const PASSWORD = 'segredosbaralho';
+  if (localStorage.getItem('auth') !== 'ok') {
+    const p = prompt('Digite a senha do diário');
+    if (p !== PASSWORD) { document.body.innerHTML = '<h2>Acesso negado</h2>'; throw new Error(); }
+    localStorage.setItem('auth','ok');
+  }
+</script>
 
-  <div class="calendar" id="calendar"></div>
+<h1>Meu Diário</h1>
+<div class="calendar" id="calendar"></div>
 
-  <div class="editor" id="editor" style="display:none;">
-    <h2 id="selectedDay"></h2>
-
-    <div class="columns">
-      <div class="column">
-        <label>Cartas (com imagem)</label>
-        <textarea id="cartas"></textarea>
-        <input type="file" id="fotoCarta" accept="image/*" />
-        <img id="previewCarta" class="preview" />
-      </div>
-
-      <div class="column">
-        <label>Percepção</label>
-        <textarea id="percepcao"></textarea>
-      </div>
-
-      <div class="column">
-        <label>Como foi o dia</label>
-        <textarea id="dia"></textarea>
-      </div>
+<div class="editor" id="editor" style="display:none;">
+  <h2 id="selectedDay"></h2>
+  <div class="columns">
+    <div class="column">
+      <label>Cartas</label>
+      <textarea id="cartas"></textarea>
+      <input type="file" id="foto" accept="image/*" />
+      <img id="preview" />
     </div>
-
-    <button class="save" onclick="saveDay()">Salvar Dia</button>
+    <div class="column"><label>Percepção</label><textarea id="percepcao"></textarea></div>
+    <div class="column"><label>Como foi o dia</label><textarea id="dia"></textarea></div>
   </div>
+  <div class="status" id="status">Salvamento automático ativo ✨</div>
+</div>
 
-  <script>
-    const calendar = document.getElementById('calendar');
-    const editor = document.getElementById('editor');
-    const selectedDay = document.getElementById('selectedDay');
-    const cartas = document.getElementById('cartas');
-    const percepcao = document.getElementById('percepcao');
-    const diaTxt = document.getElementById('dia');
-    const fotoCarta = document.getElementById('fotoCarta');
-    const previewCarta = document.getElementById('previewCarta');
+<script>
+const calendar=document.getElementById('calendar');
+const editor=document.getElementById('editor');
+const status=document.getElementById('status');
+const cartas=document.getElementById('cartas');
+const percepcao=document.getElementById('percepcao');
+const dia=document.getElementById('dia');
+const foto=document.getElementById('foto');
+const preview=document.getElementById('preview');
+let key='';
 
-    let currentDateKey = null;
+function weekday(d){return d.toLocaleDateString('pt-BR',{weekday:'long'});}
+function loadCalendar(){calendar.innerHTML='';const t=new Date();const y=t.getFullYear(),m=t.getMonth();const dim=new Date(y,m+1,0).getDate();const todayKey=new Date().toISOString().split('T')[0];for(let i=1;i<=dim;i++){const d=new Date(y,m,i);const k=d.toISOString().split('T')[0];const div=document.createElement('div');div.className='day';if(localStorage.getItem(k))div.classList.add('saved');if(k===todayKey)div.style.background='#dcd6ff';div.innerHTML=`<strong>${i}</strong><br><small>${weekday(d)}</small>`;div.onclick=()=>open(d);calendar.appendChild(div);}}
 
-    function getWeekday(date) {
-      return date.toLocaleDateString('pt-BR', { weekday: 'long' });
-    }
+function open(d){key=d.toISOString().split('T')[0];editor.style.display='block';document.getElementById('selectedDay').innerText=`${weekday(d)}, ${d.toLocaleDateString('pt-BR')}`;const s=JSON.parse(localStorage.getItem(key))||{};cartas.value=s.cartas||'';percepcao.value=s.percepcao||'';dia.value=s.dia||'';preview.src=s.foto||'';}
 
-    function loadCalendar() {
-      calendar.innerHTML = '';
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
+function autosave(){if(!key)return;localStorage.setItem(key,JSON.stringify({cartas:cartas.value,percepcao:percepcao.value,dia:dia.value,foto:preview.src}));status.innerText='Salvo automaticamente ✨';setTimeout(()=>status.innerText='Salvamento automático ativo ✨',1500);loadCalendar();}
 
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(year, month, d);
-        const key = date.toISOString().split('T')[0];
+[cartas,percepcao,dia].forEach(el=>el.addEventListener('input',autosave));
+foto.onchange=()=>{const r=new FileReader();r.onload=()=>{preview.src=r.result;autosave();};r.readAsDataURL(foto.files[0]);};
 
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'day';
-        dayDiv.innerHTML = `<strong>${d}</strong><br><small>${getWeekday(date)}</small>`;
-        if (localStorage.getItem(key)) dayDiv.classList.add('saved');
-        dayDiv.onclick = () => openEditor(date);
-        calendar.appendChild(dayDiv);
-      }
-    }
-
-    fotoCarta.addEventListener('change', () => {
-      const file = fotoCarta.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => previewCarta.src = reader.result;
-      reader.readAsDataURL(file);
-    });
-
-    function openEditor(date) {
-      currentDateKey = date.toISOString().split('T')[0];
-      editor.style.display = 'block';
-      selectedDay.innerText = `${getWeekday(date)}, ${date.toLocaleDateString('pt-BR')}`;
-
-      const saved = JSON.parse(localStorage.getItem(currentDateKey)) || {};
-      cartas.value = saved.cartas || '';
-      percepcao.value = saved.percepcao || '';
-      diaTxt.value = saved.dia || '';
-      previewCarta.src = saved.foto || '';
-
-      editor.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function saveDay() {
-      const data = {
-        cartas: cartas.value,
-        percepcao: percepcao.value,
-        dia: diaTxt.value,
-        foto: previewCarta.src || ''
-      };
-      localStorage.setItem(currentDateKey, JSON.stringify(data));
-      alert('Dia salvo ✨');
-      loadCalendar();
-    }
-
-    loadCalendar();
-  </script>
+loadCalendar();
+</script>
 </body>
 </html>
