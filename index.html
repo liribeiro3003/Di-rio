@@ -12,113 +12,21 @@
       --secondary: #f0edff;
       --text: #2b2b2b;
     }
-
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      padding: 24px;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .subtitle {
-      text-align: center;
-      margin-bottom: 32px;
-      color: #666;
-    }
-
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-      margin-bottom: 32px;
-    }
-
-    .day {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-      transition: transform 0.2s;
-    }
-
-    .day:hover {
-      transform: translateY(-3px);
-    }
-
-    .day span {
-      font-weight: 600;
-    }
-
-    .editor {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    }
-
-    .editor h2 {
-      margin-top: 0;
-      margin-bottom: 16px;
-    }
-
-    .columns {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .column {
-      background: var(--secondary);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .column label {
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 120px;
-      border-radius: 8px;
-      border: none;
-      padding: 10px;
-      font-size: 14px;
-    }
-
-    input[type="file"] {
-      margin-top: 8px;
-    }
-
-    .save {
-      margin-top: 24px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    .save:hover {
-      opacity: 0.9;
-    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 24px; }
+    h1 { text-align: center; margin-bottom: 8px; }
+    .subtitle { text-align: center; margin-bottom: 32px; color: #666; }
+    .calendar { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .day { background: var(--card); border-radius: 12px; padding: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
+    .day:hover { transform: translateY(-3px); }
+    .day.saved { border: 2px solid var(--primary); }
+    .editor { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .column { background: var(--secondary); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
+    label { font-weight: 600; margin-bottom: 6px; }
+    textarea { resize: vertical; min-height: 100px; border-radius: 8px; border: none; padding: 10px; font-size: 14px; }
+    img.preview { margin-top: 10px; max-width: 100%; border-radius: 8px; }
+    .save { margin-top: 24px; background: var(--primary); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 16px; cursor: pointer; width: 100%; }
   </style>
 </head>
 <body>
@@ -132,45 +40,97 @@
 
     <div class="columns">
       <div class="column">
-        <label>Cartas</label>
-        <textarea placeholder="Cartas do dia..."></textarea>
+        <label>Cartas (com imagem)</label>
+        <textarea id="cartas"></textarea>
+        <input type="file" id="fotoCarta" accept="image/*" />
+        <img id="previewCarta" class="preview" />
       </div>
 
       <div class="column">
         <label>Percepção</label>
-        <textarea placeholder="O que você percebeu hoje..."></textarea>
+        <textarea id="percepcao"></textarea>
       </div>
 
       <div class="column">
         <label>Como foi o dia</label>
-        <textarea placeholder="Descreva seu dia..."></textarea>
-        <input type="file" accept="image/*" />
+        <textarea id="dia"></textarea>
       </div>
     </div>
 
-    <button class="save">Salvar Dia</button>
+    <button class="save" onclick="saveDay()">Salvar Dia</button>
   </div>
 
   <script>
     const calendar = document.getElementById('calendar');
     const editor = document.getElementById('editor');
     const selectedDay = document.getElementById('selectedDay');
+    const cartas = document.getElementById('cartas');
+    const percepcao = document.getElementById('percepcao');
+    const diaTxt = document.getElementById('dia');
+    const fotoCarta = document.getElementById('fotoCarta');
+    const previewCarta = document.getElementById('previewCarta');
 
-    const daysInMonth = 30;
+    let currentDateKey = null;
 
-    for (let i = 1; i <= daysInMonth; i++) {
-      const day = document.createElement('div');
-      day.className = 'day';
-      day.innerHTML = `<span>Dia ${i}</span>`;
-      day.onclick = () => openEditor(i);
-      calendar.appendChild(day);
+    function getWeekday(date) {
+      return date.toLocaleDateString('pt-BR', { weekday: 'long' });
     }
 
-    function openEditor(day) {
+    function loadCalendar() {
+      calendar.innerHTML = '';
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const key = date.toISOString().split('T')[0];
+
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'day';
+        dayDiv.innerHTML = `<strong>${d}</strong><br><small>${getWeekday(date)}</small>`;
+        if (localStorage.getItem(key)) dayDiv.classList.add('saved');
+        dayDiv.onclick = () => openEditor(date);
+        calendar.appendChild(dayDiv);
+      }
+    }
+
+    fotoCarta.addEventListener('change', () => {
+      const file = fotoCarta.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => previewCarta.src = reader.result;
+      reader.readAsDataURL(file);
+    });
+
+    function openEditor(date) {
+      currentDateKey = date.toISOString().split('T')[0];
       editor.style.display = 'block';
-      selectedDay.innerText = `Registro do Dia ${day}`;
+      selectedDay.innerText = `${getWeekday(date)}, ${date.toLocaleDateString('pt-BR')}`;
+
+      const saved = JSON.parse(localStorage.getItem(currentDateKey)) || {};
+      cartas.value = saved.cartas || '';
+      percepcao.value = saved.percepcao || '';
+      diaTxt.value = saved.dia || '';
+      previewCarta.src = saved.foto || '';
+
       editor.scrollIntoView({ behavior: 'smooth' });
     }
+
+    function saveDay() {
+      const data = {
+        cartas: cartas.value,
+        percepcao: percepcao.value,
+        dia: diaTxt.value,
+        foto: previewCarta.src || ''
+      };
+      localStorage.setItem(currentDateKey, JSON.stringify(data));
+      alert('Dia salvo ✨');
+      loadCalendar();
+    }
+
+    loadCalendar();
   </script>
 </body>
 </html>
